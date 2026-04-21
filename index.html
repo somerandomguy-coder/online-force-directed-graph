@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>High-Perf NLP Graph</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: sans-serif;
+        background: #f0f2f5;
+      }
+      #canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+      #ui {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        width: 300px;
+        z-index: 10;
+      }
+      h1 { margin: 0 0 10px 0; font-size: 18px; }
+      textarea {
+        width: 100%;
+        height: 100px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 8px;
+        font-family: inherit;
+      }
+      #drop-zone {
+        border: 2px dashed #4285f4;
+        border-radius: 4px;
+        padding: 20px;
+        text-align: center;
+        color: #4285f4;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      #drop-zone.dragover {
+        background: rgba(66, 133, 244, 0.1);
+      }
+      button {
+        width: 100%;
+        background: #4285f4;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      button:disabled {
+        background: #ccc;
+      }
+      #status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <h1>NLP Graph Visualizer</h1>
+      <div id="drop-zone">Drop text file here</div>
+      <textarea id="text-input" placeholder="Or paste text here..."></textarea>
+      <button id="process-btn">Process & Visualize</button>
+      <button id="stress-test-btn" style="margin-top: 10px; background: #666;">Stress Test (5k nodes)</button>
+      <div id="status">Ready</div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
