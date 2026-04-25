@@ -12,6 +12,9 @@
         font-family: sans-serif;
         background: #f0f2f5;
       }
+      * {
+        box-sizing: border-box;
+      }
       #canvas {
         width: 100vw;
         height: 100vh;
@@ -27,13 +30,67 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         width: 300px;
         z-index: 10;
+        box-sizing: border-box;
+      }
+      #cluster-container {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+      }
+      #cluster-btn {
+        width: auto;
+        padding: 8px 16px;
+        background: #eee;
+        color: #333;
+      }
+      #cluster-btn.active {
+        background: #4285f4;
+        color: white;
+      }
+      #node-info-panel {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        width: 250px;
+        z-index: 10;
+        transition: opacity 0.2s;
+      }
+      #node-info-panel.hidden {
+        display: none;
+      }
+      #node-info-panel h2 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #333;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+      }
+      #neighbor-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 13px;
+      }
+      #neighbor-list li {
+        padding: 4px 0;
+        display: flex;
+        justify-content: space-between;
+      }
+      #neighbor-list li span {
+        color: #666;
+        font-weight: bold;
       }
       h1 { margin: 0 0 10px 0; font-size: 18px; }
       textarea {
         width: 100%;
         height: 100px;
         margin-bottom: 10px;
-        box-sizing: border-box;
         border: 1px solid #ccc;
         border-radius: 4px;
         padding: 8px;
@@ -65,22 +122,146 @@
       button:disabled {
         background: #ccc;
       }
+      .control-group {
+        margin-bottom: 10px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+      }
+      select {
+        width: 100%;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      .node-limits {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .node-limits button {
+        flex: 1;
+        padding: 5px;
+        font-size: 12px;
+        background: #eee;
+        color: #333;
+      }
+      .node-limits button.active {
+        background: #4285f4;
+        color: white;
+      }
+      .find-replace-group {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 5px;
+        min-width: 0;
+      }
+      .find-replace-group input {
+        flex: 1;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+      #replace-btn {
+        background: #34a853;
+        margin-top: 5px;
+      }
       #status {
         margin-top: 10px;
         font-size: 12px;
         color: #666;
       }
+      .toggle-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: #444;
+      }
+      .toggle-group input {
+        width: auto;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
+    <div id="cluster-container">
+      <button id="cluster-btn">Cluster</button>
+    </div>
     <div id="ui">
       <h1>NLP Graph Visualizer</h1>
-      <div id="drop-zone">Drop text file here</div>
+      <div id="drop-zone">Drop text file or click to upload</div>
+      <input type="file" id="file-upload" accept=".txt" style="display: none;">
       <textarea id="text-input" placeholder="Or paste text here..."></textarea>
+      
+      <div class="control-group">
+        <label>Split Method</label>
+        <select id="split-method">
+          <option value="sentence">Sentence Split</option>
+          <option value="block">Block Split (Empty Lines)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Find and Replace</label>
+        <div class="find-replace-group">
+          <input type="text" id="find-input" placeholder="Find...">
+          <input type="text" id="replace-input" placeholder="Replace...">
+        </div>
+        <button id="replace-btn">Replace All</button>
+      </div>
+
+      <div class="control-group">
+        <label>Display Options</label>
+        <div class="toggle-group">
+          <input type="checkbox" id="toggle-info" checked>
+          <label for="toggle-info" style="display: inline; margin: 0;">Show Node Info</label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Max Nodes</label>
+        <div class="node-limits">
+          <button data-limit="50">50</button>
+          <button data-limit="100">100</button>
+          <button data-limit="200">200</button>
+          <button data-limit="500">500</button>
+          <button data-limit="1000" class="active">1000</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Physics Controls</label>
+        <div class="toggle-group">
+          <label for="cluster-pull">Cluster Pull</label>
+          <input type="range" id="cluster-pull" min="0" max="1" step="0.1" value="0">
+        </div>
+        <div class="toggle-group">
+          <label for="global-gravity">Global Gravity</label>
+          <input type="range" id="global-gravity" min="0" max="1" step="0.1" value="0.1">
+        </div>
+      </div>
+
       <button id="process-btn">Process & Visualize</button>
       <button id="stress-test-btn" style="margin-top: 10px; background: #666;">Stress Test (5k nodes)</button>
       <div id="status">Ready</div>
     </div>
+
+    <div id="node-info-panel" class="hidden">
+      <h2 id="info-node-id">Node: None</h2>
+      <div style="font-size: 12px; color: #888; margin-bottom: 8px;">Top Neighbors:</div>
+      <ul id="neighbor-list">
+      </ul>
+    </div>
+
     <canvas id="canvas"></canvas>
     <script type="module" src="/src/main.ts"></script>
   </body>

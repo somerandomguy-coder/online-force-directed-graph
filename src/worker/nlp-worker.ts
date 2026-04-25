@@ -1,13 +1,18 @@
 // src/worker/nlp-worker.ts
 import winkNLP from 'wink-nlp';
 import model from 'wink-eng-lite-web-model';
+import Graph from 'graphology';
+import louvain from 'graphology-communities-louvain';
 
 const nlp = winkNLP(model);
 const its = nlp.its;
 
+const noiseTokens = new Set(["'s", "v.", "st.", "cf."]);
+
 interface Node {
   id: string;
   count: number;
+  cluster?: number;
 }
 
 interface Link {
@@ -21,25 +26,6 @@ interface GraphData {
   links: Link[];
 }
 
-function getCoOccurrenceMatrix(tokens: string[], windowSize: number = 3): Record<string, Record<string, number>> {
-  const matrix: Record<string, Record<string, number>> = {};
-  
-  tokens.forEach((word, i) => {
-    if (!matrix[word]) matrix[word] = {};
-    
-    const start = Math.max(0, i - windowSize);
-    const end = Math.min(tokens.length - 1, i + windowSize);
-    
-    for (let j = start; j <= end; j++) {
-      if (i === j) continue;
-      const neighbor = tokens[j];
-      matrix[word][neighbor] = (matrix[word][neighbor] || 0) + 1;
-    }
-  });
-  
-  return matrix;
-}
-
 self.onmessage = (event: MessageEvent) => {
   const { text, type, options = {} } = event.data;
 
@@ -47,23 +33,68 @@ self.onmessage = (event: MessageEvent) => {
     const windowSize = options.windowSize || 3;
     const minWeight = options.minWeight || 1;
     const maxNodes = options.maxNodes || 500;
+    const splitMethod = options.splitMethod || 'sentence';
 
-    console.log('Worker processing text...');
+    console.log('Worker processing text...', { splitMethod });
     const startTime = performance.now();
 
     const doc = nlp.readDoc(text);
     
-    // 1. Tokenization & Cleaning
-    const tokens = doc.tokens()
-      .filter((t) => t.out(its.type) === 'word' && !t.out(its.stopWordFlag))
-      .out(its.normal);
+    // 1. Tokenization & Cleaning with configurable splitting
+    let tokensBySentence: string[][];
 
-    // 2. Co-occurrence Matrix
-    const coMatrix = getCoOccurrenceMatrix(tokens, windowSize);
+    const isInsightful = (t: any) => {
+      const type = t.out(its.type);
+      const normal = t.out(its.normal);
+      return type !== 'number' &&
+             type === 'word' && 
+             !t.out(its.stopWordFlag) && 
+             normal.length >= 2 &&
+             !noiseTokens.has(normal);
+    };
+
+    if (splitMethod === 'block') {
+      // Split by 2+ newlines
+      const blocks = text.split(/\n\s*\n/);
+      tokensBySentence = blocks.map(blockText => {
+        const blockDoc = nlp.readDoc(blockText);
+        return blockDoc.tokens()
+          .filter(isInsightful)
+          .out(its.normal);
+      });
+    } else {
+      // Default: Sentence split
+      tokensBySentence = doc.sentences().out().map(sentenceText => {
+        const sentenceDoc = nlp.readDoc(sentenceText);
+        return sentenceDoc.tokens()
+          .filter(isInsightful)
+          .out(its.normal);
+      });
+    }
+
+    const allTokens = tokensBySentence.flat();
+
+    // 2. Co-occurrence Matrix (sentence-aware)
+    const coMatrix: Record<string, Record<string, number>> = {};
+    
+    tokensBySentence.forEach(tokens => {
+      tokens.forEach((word, i) => {
+        if (!coMatrix[word]) coMatrix[word] = {};
+        
+        const start = Math.max(0, i - windowSize);
+        const end = Math.min(tokens.length - 1, i + windowSize);
+        
+        for (let j = start; j <= end; j++) {
+          if (i === j) continue;
+          const neighbor = tokens[j];
+          coMatrix[word][neighbor] = (coMatrix[word][neighbor] || 0) + 1;
+        }
+      });
+    });
 
     // 3. Transform to Graph Data (Nodes and Links)
     const nodeCounts: Record<string, number> = {};
-    tokens.forEach(t => {
+    allTokens.forEach(t => {
       nodeCounts[t] = (nodeCounts[t] || 0) + 1;
     });
 
@@ -74,9 +105,11 @@ self.onmessage = (event: MessageEvent) => {
 
     const topWords = new Set(sortedNodes.map(n => n[0]));
 
-    const nodes: Node[] = sortedNodes.map(([id, count]) => ({ id, count }));
-    const links: Link[] = [];
+    // --- Clustering ---
+    const graph = new Graph();
+    sortedNodes.forEach(([id]) => graph.addNode(id));
 
+    const links: Link[] = [];
     const processedLinks = new Set<string>();
 
     Object.entries(coMatrix).forEach(([source, targets]) => {
@@ -86,14 +119,22 @@ self.onmessage = (event: MessageEvent) => {
         if (!topWords.has(target)) return;
         if (weight < minWeight) return;
 
-        // Ensure each link is only added once (undirected)
         const linkKey = [source, target].sort().join('|');
         if (!processedLinks.has(linkKey)) {
+          graph.addEdge(source, target, { weight });
           links.push({ source, target, weight });
           processedLinks.add(linkKey);
         }
       });
     });
+
+    const communities = louvain(graph);
+
+    const nodes: Node[] = sortedNodes.map(([id, count]) => ({
+      id,
+      count,
+      cluster: communities[id]
+    }));
 
     const endTime = performance.now();
     console.log(`Processing complete in ${(endTime - startTime).toFixed(2)}ms`);
