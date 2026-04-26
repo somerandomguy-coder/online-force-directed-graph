@@ -56,7 +56,7 @@ self.onmessage = (event: MessageEvent) => {
     if (splitMethod === 'block') {
       // Split by 2+ newlines
       const blocks = text.split(/\n\s*\n/);
-      tokensBySentence = blocks.map(blockText => {
+      tokensBySentence = blocks.map((blockText: string) => {
         const blockDoc = nlp.readDoc(blockText);
         return blockDoc.tokens()
           .filter(isInsightful)

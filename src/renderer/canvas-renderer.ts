@@ -73,7 +73,7 @@ export class CanvasRenderer {
         }
       });
 
-      clusterCentroids.forEach((centroid, cluster) => {
+      clusterCentroids.forEach((centroid, _cluster) => {
         centroid.x /= centroid.count;
         centroid.y /= centroid.count;
       });
