@@ -22,6 +22,34 @@ const replaceBtn = document.getElementById('replace-btn') as HTMLButtonElement;
 const limitButtons = document.querySelectorAll('.node-limits button');
 const statusDiv = document.getElementById('status') as HTMLDivElement;
 
+// Tab UI Elements
+const tabCooccurrence = document.getElementById('tab-cooccurrence') as HTMLButtonElement;
+const tabConcept = document.getElementById('tab-concept') as HTMLButtonElement;
+
+type GraphMode = 'COOCCURRENCE' | 'CONCEPT';
+let currentMode: GraphMode = 'COOCCURRENCE';
+
+function updateTabs() {
+  tabCooccurrence.classList.toggle('active', currentMode === 'COOCCURRENCE');
+  tabConcept.classList.toggle('active', currentMode === 'CONCEPT');
+  
+  if (textInput.value.trim()) {
+    processText(textInput.value);
+  }
+}
+
+tabCooccurrence.addEventListener('click', () => {
+  if (currentMode === 'COOCCURRENCE') return;
+  currentMode = 'COOCCURRENCE';
+  updateTabs();
+});
+
+tabConcept.addEventListener('click', () => {
+  if (currentMode === 'CONCEPT') return;
+  currentMode = 'CONCEPT';
+  updateTabs();
+});
+
 // Node Info UI Elements
 const nodeInfoPanel = document.getElementById('node-info-panel') as HTMLDivElement;
 const infoNodeId = document.getElementById('info-node-id') as HTMLHeadingElement;
@@ -98,7 +126,8 @@ function processText(text: string) {
       windowSize: 4,
       minWeight: 2,
       maxNodes: currentMaxNodes,
-      splitMethod: splitMethodSelect.value
+      splitMethod: splitMethodSelect.value,
+      mode: currentMode
     }
   });
 }

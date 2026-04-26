@@ -11,6 +11,7 @@ interface Link extends d3.SimulationLinkDatum<Node> {
   source: string | Node;
   target: string | Node;
   weight: number;
+  label?: string;
 }
 
 interface GraphData {
@@ -170,6 +171,23 @@ export class CanvasRenderer {
       }
     });
     ctx.stroke();
+
+    // Draw Link Labels (only if present)
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = '#666';
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'center';
+    links.forEach(link => {
+      if (link.label) {
+        const source = link.source as Node;
+        const target = link.target as Node;
+        if (source.x !== undefined && source.y !== undefined && target.x !== undefined && target.y !== undefined) {
+          const mx = (source.x + target.x) / 2;
+          const my = (source.y + target.y) / 2;
+          ctx.fillText(link.label, mx, my);
+        }
+      }
+    });
 
     // Draw Nodes
     ctx.globalAlpha = 1.0;

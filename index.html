@@ -190,6 +190,27 @@
         width: auto;
         margin: 0;
       }
+      .tab-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+      .tab {
+        flex: 1;
+        background: #f8f9fa;
+        color: #666;
+        border: 1px solid #ddd;
+        padding: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+      .tab.active {
+        background: #4285f4;
+        color: white;
+        border-color: #4285f4;
+      }
     </style>
   </head>
   <body>
@@ -197,6 +218,10 @@
       <button id="cluster-btn">Cluster</button>
     </div>
     <div id="ui">
+      <div class="tab-container">
+        <button id="tab-cooccurrence" class="tab active">Co-occurrence</button>
+        <button id="tab-concept" class="tab">Concept Graph</button>
+      </div>
       <h1>NLP Graph Visualizer</h1>
       <div id="drop-zone">Drop text file or click to upload</div>
       <input type="file" id="file-upload" accept=".txt" style="display: none;">
