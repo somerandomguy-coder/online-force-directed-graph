@@ -138,7 +138,7 @@ function processConceptGraph(doc: any, _text: string, options: WorkerOptions): G
     
     // 1. Extract Entities
     s.entities().each((e: any) => {
-      concepts.push(e.out());
+      concepts.push(e.out(its.normal));
     });
 
     // 2. Extract Nouns (POS filtering)
@@ -148,7 +148,7 @@ function processConceptGraph(doc: any, _text: string, options: WorkerOptions): G
         return (pos === 'NOUN' || pos === 'PROPN') && !t.out(its.stopWordFlag);
       })
       .each((t: any) => {
-        const val = t.out();
+        const val = t.out(its.normal);
         if (!concepts.includes(val)) concepts.push(val);
       });
 

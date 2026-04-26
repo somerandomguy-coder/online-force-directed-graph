@@ -172,19 +172,36 @@ export class CanvasRenderer {
     });
     ctx.stroke();
 
-    // Draw Link Labels (only if present)
-    ctx.globalAlpha = 1.0;
-    ctx.fillStyle = '#666';
-    ctx.font = '8px sans-serif';
-    ctx.textAlign = 'center';
+    // Draw Link Labels (only if present and meeting visibility criteria)
+    const labelThreshold = 1.5;
     links.forEach(link => {
       if (link.label) {
         const source = link.source as Node;
         const target = link.target as Node;
-        if (source.x !== undefined && source.y !== undefined && target.x !== undefined && target.y !== undefined) {
+        
+        const isHovered = this.hoveredNode && (source.id === this.hoveredNode.id || target.id === this.hoveredNode.id);
+        const isVisible = transform.k > labelThreshold || isHovered;
+
+        if (isVisible && source.x !== undefined && source.y !== undefined && target.x !== undefined && target.y !== undefined) {
           const mx = (source.x + target.x) / 2;
           const my = (source.y + target.y) / 2;
+
+          ctx.save();
+          ctx.globalAlpha = isHovered ? 1.0 : 0.7;
+          ctx.fillStyle = isHovered ? '#000' : '#444';
+          ctx.font = `${10 / transform.k}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          // Optional: Draw a small background for the label for readability
+          const textWidth = ctx.measureText(link.label).width;
+          const padding = 2 / transform.k;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.fillRect(mx - textWidth/2 - padding, my - (6 / transform.k), textWidth + padding * 2, 12 / transform.k);
+          
+          ctx.fillStyle = isHovered ? '#000' : '#444';
           ctx.fillText(link.label, mx, my);
+          ctx.restore();
         }
       }
     });
